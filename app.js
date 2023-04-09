@@ -13,15 +13,10 @@ const baseUrl = "https://fapi.binance.com/";
 const leverageEndPoint = "fapi/v1/leverage";
 const marginEndPoint = "fapi/v1/marginType";
 
-const allowedOrigins = [
-  "http://localhost:3000", // Örnek: React uygulamanızın adresi
-  "https://fapi.binance.com/fapi/v1/leverage", // Hedef API'nin adresi
-];
-
 app.use(express.json());
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: "*",
   })
 );
 
