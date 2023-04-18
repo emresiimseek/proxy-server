@@ -1,15 +1,14 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
-var ip = require("ip");
 var https = require("https");
-const os = require("os");
+const crypto = require("crypto");
+require("dotenv").config();
 
 const app = express();
 
 const port = 4000;
 const baseUrl = "https://fapi.binance.com/";
-const btcUrl = "https://api.btcturk.com/api/v2/ticker";
 
 const leverageEndPoint = "fapi/v1/leverage";
 const marginEndPoint = "fapi/v1/marginType";
@@ -59,25 +58,58 @@ app.post("/margin", async (req, res) => {
   }
 });
 
-app.post("/order", async (req, res) => {
-  const clientIP = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-  console.log(`Client IP address: ${clientIP}`);
+const API_KEY = process.env.API_KEY;
+const API_SECRET = process.env.API_SECRET;
 
-  try {
-    const realUrl = "https://api.btcturk.com/api/v1/order";
-    const response = await axios.post(realUrl, req.body, {
-      headers: {
-        "Content-type": req.headers["Content-type"],
-        "X-PCK": req.headers["X-PCK"],
-        "X-Stamp": req.headers["X-Stamp"],
-        "X-Signature": req.headers["X-Signature"],
-      },
+app.post("/order", async (req, res) => {
+  const base = "https://api.btcturk.com";
+  const method = "/api/v1/order";
+  const uri = base + method;
+
+  const options = {
+    headers: authentication(),
+    "X-Client-IP": req.ip,
+  };
+
+  const data = {
+    quantity: req.body.quantity,
+    price: req.body.price,
+    newOrderClientId: req.body.newOrderClientId,
+    orderMethod: "limit",
+    orderType: req.body.orderType,
+    pairSymbol: "BTCTRY",
+  };
+
+  axios
+    .post(uri, data, options)
+    .then((response) => {
+      res.send(response.data);
+    })
+    .catch((error) => {
+      res
+        .status(error.response.status)
+        .send(JSON.stringify(error.response.data));
     });
 
-    res.send(response.data);
-  } catch (error) {
-    // console.log(error);
-    res.status(error.response.status).send(JSON.stringify(error.response.data));
+  function authentication() {
+    const stamp = new Date().getTime();
+    const data = Buffer.from(`${API_KEY}${stamp}`, "utf8");
+    const buffer = crypto.createHmac(
+      "sha256",
+      Buffer.from(API_SECRET, "base64")
+    );
+    buffer.update(data);
+    const digest = buffer.digest();
+    const signature = Buffer.from(digest.toString("base64"), "utf8").toString(
+      "utf8"
+    );
+
+    return {
+      "Content-type": "application/json",
+      "X-PCK": API_KEY,
+      "X-Stamp": stamp.toString(),
+      "X-Signature": signature,
+    };
   }
 });
 
