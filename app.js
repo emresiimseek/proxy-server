@@ -75,9 +75,9 @@ app.post("/order", async (req, res) => {
     quantity: req.body.quantity,
     price: req.body.price,
     newOrderClientId: req.body.newOrderClientId,
-    orderMethod: "limit",
+    orderMethod: req.body.orderMethod,
     orderType: req.body.orderType,
-    pairSymbol: "BTCTRY",
+    pairSymbol: req.body.pairSymbol,
   };
 
   axios
@@ -92,8 +92,7 @@ app.post("/order", async (req, res) => {
     });
 
   function authentication() {
-    const stamp = new Date().getTime();
-    const data = Buffer.from(`${API_KEY}${stamp}`, "utf8");
+    const data = Buffer.from(`${API_KEY}${req.body.stamp}`, "utf8");
     const buffer = crypto.createHmac(
       "sha256",
       Buffer.from(API_SECRET, "base64")
@@ -107,7 +106,7 @@ app.post("/order", async (req, res) => {
     return {
       "Content-type": "application/json",
       "X-PCK": API_KEY,
-      "X-Stamp": stamp.toString(),
+      "X-Stamp": req.body.stamp,
       "X-Signature": signature,
     };
   }
